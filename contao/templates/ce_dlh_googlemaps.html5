@@ -1,0 +1,150 @@
+<?php $this->extend('block_searchable'); ?>
+
+<?php $this->block('content'); ?>
+
+<?php if ($this->hasElements): ?>
+<div id="<?= $this->mapId ?>" style="width: <?= $this->width ?>px; height: <?= $this->height ?>px;"></div>
+
+<script>
+(function() {
+    let map;
+    
+    function initMap() {
+        const mapOptions = {
+            zoom: <?= $this->zoom ?>,
+            center: { lat: <?= $this->center['lat'] ?>, lng: <?= $this->center['lng'] ?> },
+            mapTypeId: google.maps.MapTypeId.<?= $this->mapType ?>,
+            <?php if ($this->zoomType === 'NONE'): ?>
+            zoomControl: false,
+            <?php elseif ($this->zoomType === 'SMALL'): ?>
+            zoomControl: true,
+            zoomControlOptions: {
+                style: google.maps.ZoomControlStyle.SMALL
+            },
+            <?php elseif ($this->zoomType === 'LARGE'): ?>
+            zoomControl: true,
+            zoomControlOptions: {
+                style: google.maps.ZoomControlStyle.LARGE
+            },
+            <?php endif; ?>
+        };
+        
+        map = new google.maps.Map(document.getElementById('<?= $this->mapId ?>'), mapOptions);
+        
+        <?php if ($this->mapUrl): ?>
+        google.maps.event.addListener(map, 'click', function() {
+            window.location.href = '<?= $this->mapUrl ?>';
+        });
+        <?php endif; ?>
+        
+        // Elemente hinzufügen
+        const elements = <?= json_encode($this->elements) ?>;
+        
+        elements.forEach(function(element) {
+            switch(element.type) {
+                case 'MARKER':
+                    const markerOptions = {
+                        position: { lat: element.lat, lng: element.lng },
+                        map: map,
+                        title: element.title,
+                        clickable: element.clickable,
+                        draggable: element.draggable
+                    };
+                    
+                    if (element.icon) {
+                        markerOptions.icon = element.icon;
+                    }
+                    
+                    const marker = new google.maps.Marker(markerOptions);
+                    
+                    if (element.infoWindow) {
+                        const infoWindow = new google.maps.InfoWindow({
+                            content: '<div style="max-width: 300px;">' + element.infoWindow + '</div>'
+                        });
+                        
+                        marker.addListener('click', function() {
+                            infoWindow.open(map, marker);
+                        });
+                    }
+                    break;
+                    
+                case 'POLYLINE':
+                    new google.maps.Polyline({
+                        path: element.path,
+                        map: map,
+                        strokeColor: element.strokeColor,
+                        strokeWeight: element.strokeWeight,
+                        strokeOpacity: element.strokeOpacity,
+                        clickable: element.clickable
+                    });
+                    break;
+                    
+                case 'POLYGON':
+                    new google.maps.Polygon({
+                        paths: element.path,
+                        map: map,
+                        strokeColor: element.strokeColor,
+                        strokeWeight: element.strokeWeight,
+                        strokeOpacity: element.strokeOpacity,
+                        fillColor: element.fillColor,
+                        fillOpacity: element.fillOpacity,
+                        clickable: element.clickable
+                    });
+                    break;
+                    
+                case 'CIRCLE':
+                    new google.maps.Circle({
+                        center: { lat: element.lat, lng: element.lng },
+                        radius: element.radius,
+                        map: map,
+                        strokeColor: element.strokeColor,
+                        strokeWeight: element.strokeWeight,
+                        strokeOpacity: element.strokeOpacity,
+                        fillColor: element.fillColor,
+                        fillOpacity: element.fillOpacity,
+                        clickable: element.clickable
+                    });
+                    break;
+                    
+                case 'RECTANGLE':
+                    new google.maps.Rectangle({
+                        bounds: element.bounds,
+                        map: map,
+                        strokeColor: element.strokeColor,
+                        strokeWeight: element.strokeWeight,
+                        strokeOpacity: element.strokeOpacity,
+                        fillColor: element.fillColor,
+                        fillOpacity: element.fillOpacity,
+                        clickable: element.clickable
+                    });
+                    break;
+                    
+                case 'KML':
+                    new google.maps.KmlLayer({
+                        url: element.url,
+                        map: map
+                    });
+                    break;
+            }
+        });
+    }
+    
+    // Google Maps API laden
+    if (!window.googleMapsLoaded_<?= $this->mapId ?>) {
+        window.googleMapsLoaded_<?= $this->mapId ?> = true;
+        const script = document.createElement('script');
+        script.src = 'https://maps.googleapis.com/maps/api/js?key=<?= $this->apiKey ?>&callback=initMap_<?= $this->mapId ?>';
+        script.async = true;
+        script.defer = true;
+        window.initMap_<?= $this->mapId ?> = initMap;
+        document.head.appendChild(script);
+    } else {
+        initMap();
+    }
+})();
+</script>
+<?php else: ?>
+<p>Keine Elemente vorhanden. Bitte fügen Sie Marker oder andere Elemente hinzu.</p>
+<?php endif; ?>
+
+<?php $this->endblock(); ?>
