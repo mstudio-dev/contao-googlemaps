@@ -1,6 +1,5 @@
 # Contao Google Maps Bundle (Mstudio)
 
-Contao 5.x Upgrade des bewährten dlh_googlemaps Extensions.
 
 ## Features
 
